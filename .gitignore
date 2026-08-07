@@ -1,0 +1,30 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+.venv-*/
+venv/
+.vercel/
+
+# Local artifacts
+*.log
+*.orig
+*.rej
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.pem
+*.key
+Thumbs.db
+.DS_Store

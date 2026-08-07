@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="440" viewBox="0 0 820 440" role="img" aria-labelledby="title description">
+  <title id="title">Token comparison for one identical request</title>
+  <desc id="description">Full regulation context used 4,396 tokens. The verified agent context used 2,699 tokens, saving 1,697 tokens or 38.6 percent.</desc>
+  <rect width="820" height="440" rx="18" fill="#fbfaf6"/>
+  <text x="54" y="50" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#18332f">Single-request token comparison</text>
+  <line x1="90" y1="350" x2="750" y2="350" stroke="#a8b4b1"/>
+  <g font-family="Arial, sans-serif" font-size="13" fill="#5f6f6c">
+    <line x1="90" y1="296" x2="750" y2="296" stroke="#dbe1df"/>
+    <line x1="90" y1="242" x2="750" y2="242" stroke="#dbe1df"/>
+    <line x1="90" y1="188" x2="750" y2="188" stroke="#dbe1df"/>
+    <line x1="90" y1="134" x2="750" y2="134" stroke="#dbe1df"/>
+    <line x1="90" y1="80" x2="750" y2="80" stroke="#dbe1df"/>
+    <text x="46" y="355">0</text>
+    <text x="32" y="301">1,000</text>
+    <text x="32" y="247">2,000</text>
+    <text x="32" y="193">3,000</text>
+    <text x="32" y="139">4,000</text>
+    <text x="32" y="85">5,000</text>
+  </g>
+  <rect x="210" y="113" width="130" height="237" rx="8" fill="#7f928e"/>
+  <rect x="480" y="204" width="130" height="146" rx="8" fill="#087f6d"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle" fill="#18332f">
+    <text x="275" y="101" font-size="18" font-weight="700">4,396</text>
+    <text x="545" y="192" font-size="18" font-weight="700">2,699</text>
+    <text x="275" y="382" font-size="15">Full rule context</text>
+    <text x="545" y="382" font-size="15">Verified agent context</text>
+  </g>
+  <rect x="620" y="94" width="158" height="74" rx="10" fill="#e8f3f0" stroke="#87b9ad"/>
+  <text x="699" y="121" font-family="Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="#087f6d">−1,697 tokens</text>
+  <text x="699" y="147" font-family="Arial, sans-serif" font-size="17" text-anchor="middle" fill="#18332f">−38.6%</text>
+  <text x="54" y="418" font-family="Arial, sans-serif" font-size="12" fill="#5f6f6c">Presentation measurement: one identical request, Qwen3-32B-FP8 API usage log.</text>
+</svg>

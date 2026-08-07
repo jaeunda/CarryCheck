@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="title description">
+  <title id="title">CarryCheck RAG performance summary</title>
+  <desc id="description">Hybrid Recall at 3 was 1.00. Transport decision match was 100 percent and all 10 guardrail cases passed. Compact verified context reduced token use from 4,396 to 2,699, a 38.6 percent reduction.</desc>
+  <rect width="1200" height="340" rx="24" fill="#f8faf9"/>
+  <text x="54" y="58" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#173b35">Verified RAG performance</text>
+  <text x="54" y="87" font-family="Arial, sans-serif" font-size="14" fill="#5e706c">Presentation snapshot · 10 curated questions · prototype measurements</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="54" y="116" width="338" height="174" rx="16" fill="#ffffff" stroke="#cfdad7"/>
+    <text x="78" y="151" font-size="14" font-weight="700" fill="#58706b">RETRIEVAL COVERAGE</text>
+    <text x="78" y="215" font-size="52" font-weight="700" fill="#087f6d">1.00</text>
+    <text x="78" y="249" font-size="18" font-weight="700" fill="#173b35">Hybrid Recall@3</text>
+    <text x="78" y="273" font-size="13" fill="#667773">Relevant evidence in the top three</text>
+
+    <rect x="431" y="116" width="338" height="174" rx="16" fill="#ffffff" stroke="#cfdad7"/>
+    <text x="455" y="151" font-size="14" font-weight="700" fill="#58706b">VERIFIED DECISION</text>
+    <text x="455" y="215" font-size="52" font-weight="700" fill="#087f6d">100%</text>
+    <text x="455" y="249" font-size="18" font-weight="700" fill="#173b35">Transport-status match</text>
+    <text x="455" y="273" font-size="13" fill="#667773">10/10 status and source guardrails passed</text>
+
+    <rect x="808" y="116" width="338" height="174" rx="16" fill="#ffffff" stroke="#cfdad7"/>
+    <text x="832" y="151" font-size="14" font-weight="700" fill="#58706b">CONTEXT EFFICIENCY</text>
+    <text x="832" y="215" font-size="52" font-weight="700" fill="#d17a00">−38.6%</text>
+    <text x="832" y="249" font-size="18" font-weight="700" fill="#173b35">Token use</text>
+    <text x="832" y="273" font-size="13" fill="#667773">4,396 → 2,699 for one identical request</text>
+  </g>
+</svg>

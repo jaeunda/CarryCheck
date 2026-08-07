@@ -1,0 +1,6 @@
+-r api.txt
+openai>=1.40
+pandas>=2.1
+jupyter>=1.0
+matplotlib>=3.8
+ruff>=0.16,<1

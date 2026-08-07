@@ -1,0 +1,17 @@
+/* Shared static asset for local and Vercel runtimes. */
+/* Ensure the HTML hidden state always wins over component display declarations. */
+[hidden] {
+  display: none !important;
+}
+
+#emptyState:not([hidden]) {
+  display: flex;
+}
+
+#loadingState:not([hidden]) {
+  display: grid;
+}
+
+#resultContent:not([hidden]) {
+  display: block;
+}

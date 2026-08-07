@@ -1,0 +1,215 @@
+<!doctype html>
+<!-- Shared entry page for local and Vercel runtimes. -->
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="항공사 수하물 규정과 중국·태국·일본의 출발 보안 및 입국 세관·검역 규정을 함께 확인하세요." />
+    <title>CarryCheck · 중국·태국·일본 수하물 규정</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles_state.css" />
+    <link rel="stylesheet" href="/styles_flow.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="CarryCheck 홈">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        <span>CarryCheck</span>
+      </a>
+      <div class="dataset-badge" id="datasetBadge">국가 규정을 불러오는 중</div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="eyebrow">CHINA · THAILAND · JAPAN BAGGAGE ASSISTANT</div>
+        <h1 id="pageTitle">항공 규정부터 입국 세관까지<br /><span>한 번에 확인하세요.</span></h1>
+        <p>출발·도착 국가를 기준으로 항공사 규정과 중국·태국·일본의 보안·세관·검역 규정을 구분해 안내합니다.</p>
+      </section>
+
+      <div class="workspace">
+        <section class="panel input-panel" aria-labelledby="inputTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="step-label">STEP 01</p>
+              <h2 id="inputTitle">여행 정보 입력</h2>
+            </div>
+            <button class="text-button" id="resetButton" type="button">초기화</button>
+          </div>
+
+          <form id="baggageForm">
+            <div class="field-grid two-columns">
+              <label class="field">
+                <span>항공사 <em>필수</em></span>
+                <select id="airline" name="airline" required>
+                  <option value="">항공사를 선택하세요</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>노선</span>
+                <select id="routeType" name="route_type">
+                  <option value="">출발·도착 국가로 자동 판별</option>
+                  <option value="domestic">국내선</option>
+                  <option value="international">국제선</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="field-grid two-columns">
+              <label class="field">
+                <span>출발 국가</span>
+                <select id="originCountry" name="origin_country" required>
+                  <option value="">선택 안 함</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>도착 국가</span>
+                <select id="destinationCountry" name="destination_country" required>
+                  <option value="">선택 안 함</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>경유 국가 <small>선택</small></span>
+              <select id="transitCountry" name="transit_country">
+                <option value="">직항 또는 선택 안 함</option>
+              </select>
+            </label>
+
+            <label class="field item-description">
+              <span>물품 설명 <em>필수</em></span>
+              <textarea id="itemText" name="item_text" rows="4" maxlength="1200" required placeholder="예: CCC 표시 보조배터리 20,000mAh 3.7V 1개"></textarea>
+              <small>제품명, 용량, 전압, 수량과 포장 상태를 함께 적으면 더 정확합니다.</small>
+            </label>
+
+            <div class="examples" aria-labelledby="examplesTitle">
+              <span id="examplesTitle">국가별 빠른 예시</span>
+              <div class="example-list" id="exampleList"></div>
+            </div>
+
+            <details class="advanced" id="advancedSettings">
+              <summary>
+                <span>상세 정보 직접 설정</span>
+                <small>자동 인식을 보완할 때 사용</small>
+              </summary>
+              <div class="advanced-content">
+                <label class="field full-width">
+                  <span>물품 유형</span>
+                  <select id="itemType" name="item_type">
+                    <option value="">설명에서 자동 인식</option>
+                  </select>
+                </label>
+
+                <div class="field-grid three-columns">
+                  <label class="field"><span>Wh</span><input id="wattHours" type="number" min="0" step="0.1" placeholder="74" /></label>
+                  <label class="field"><span>mAh</span><input id="milliampHours" type="number" min="0" step="1" placeholder="20000" /></label>
+                  <label class="field"><span>전압(V)</span><input id="voltage" type="number" min="0" step="0.1" placeholder="3.7" /></label>
+                  <label class="field"><span>개별 용기(mL)</span><input id="containerMl" type="number" min="0" step="1" placeholder="100" /></label>
+                  <label class="field"><span>총량(mL)</span><input id="totalMl" type="number" min="0" step="1" placeholder="500" /></label>
+                  <label class="field"><span>무게(kg)</span><input id="weightKg" type="number" min="0" step="0.1" placeholder="2.5" /></label>
+                  <label class="field"><span>수량</span><input id="count" type="number" min="1" step="1" placeholder="1" /></label>
+                </div>
+
+                <div class="field-grid three-columns">
+                  <label class="field"><span>배터리 분리</span><select id="removableBattery"><option value="">모름</option><option value="true">가능</option><option value="false">불가능</option></select></label>
+                  <label class="field"><span>물리적 전원 차단</span><select id="physicalDisconnect"><option value="">모름</option><option value="true">있음</option><option value="false">없음</option></select></label>
+                  <label class="field"><span>발열 안전 모드</span><select id="heatSafetyMode"><option value="">모름</option><option value="true">있음</option><option value="false">없음</option></select></label>
+                </div>
+
+                <div class="field-grid two-columns">
+                  <label class="field">
+                    <span>중국 국내선 CCC(3C) 표시</span>
+                    <select id="cccMark">
+                      <option value="">확인하지 않음</option>
+                      <option value="true">표시가 명확함</option>
+                      <option value="false">없거나 불명확함</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="check-grid" role="group" aria-label="예외 및 제품 상태">
+                  <label><input id="damaged" type="checkbox" /><span>손상·팽창·리콜 제품</span></label>
+                  <label><input id="recalledBattery" type="checkbox" /><span>중국 국내선 리콜 보조배터리</span></label>
+                  <label><input id="medicalException" type="checkbox" /><span>의료·유아용 예외</span></label>
+                  <label><input id="dutyFree" type="checkbox" /><span>면세 보안봉투 제품</span></label>
+                  <label><input id="torchLighter" type="checkbox" /><span>토치·전기 라이터</span></label>
+                </div>
+              </div>
+            </details>
+
+            <p class="form-error" id="formError" role="alert" hidden></p>
+            <button class="primary-button" id="submitButton" type="submit">
+              <span>국가별 수하물 규정 확인하기</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </form>
+        </section>
+
+        <section class="panel result-panel" id="resultPanel" aria-labelledby="resultTitle" aria-live="polite">
+          <div class="empty-state" id="emptyState">
+            <div class="luggage-illustration" aria-hidden="true">
+              <span class="handle"></span><span class="case"></span><span class="tag">?</span>
+            </div>
+            <p class="step-label">STEP 02</p>
+            <h2 id="resultTitle">항공·출발국·도착국 판정이 여기에 표시됩니다.</h2>
+            <p>왼쪽에서 여행 정보와 물품을 입력해 주세요.</p>
+          </div>
+
+          <div class="loading-state" id="loadingState" hidden>
+            <div class="spinner" aria-hidden="true"></div>
+            <h2>국가별 규정을 확인하고 있어요.</h2>
+            <p>항공사, 출발 보안, 도착 세관 규정을 나누어 판정합니다.</p>
+          </div>
+
+          <div class="result-content" id="resultContent" hidden>
+            <div class="result-topline">
+              <div>
+                <p class="step-label">STEP 02 · 판정 완료</p>
+                <p class="result-context" id="resultContext"></p>
+              </div>
+              <span class="overall-badge" id="overallBadge"></span>
+            </div>
+            <h2 class="result-headline" id="resultHeadline"></h2>
+            <div class="parsed-values" id="parsedValues"></div>
+
+            <div class="mode-grid">
+              <article class="mode-card" id="carryCard">
+                <div class="mode-icon" aria-hidden="true">↑</div>
+                <div><span>기내 반입</span><strong id="carryStatus"></strong></div>
+              </article>
+              <article class="mode-card" id="checkedCard">
+                <div class="mode-icon" aria-hidden="true">↓</div>
+                <div><span>위탁 수하물</span><strong id="checkedStatus"></strong></div>
+              </article>
+            </div>
+
+            <section class="ai-answer" id="aiAnswerBlock" hidden>
+              <div class="ai-answer-heading">
+                <div>
+                  <span>VERIFIED LLM ANSWER</span>
+                  <h3 id="aiAnswerTitle">판정 일치 확인 AI 설명</h3>
+                </div>
+                <span class="ai-answer-status" id="aiAnswerStatus"></span>
+              </div>
+              <p id="aiAnswerText"></p>
+              <p class="ai-answer-meta" id="aiAnswerMeta"></p>
+            </section>
+
+            <div class="result-sections" id="resultSections"></div>
+            <div class="source-block" id="sourceBlock"></div>
+
+            <div class="notice">
+              <strong>운항 직전 공식 원문을 다시 확인하세요.</strong>
+              <p>항공 운송과 입국 세관은 별도 판정이며, 실제 운송 여부는 항공사·공항·관계 당국의 최신 기준이 우선합니다.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <p>교육용 규정 도우미 · 항공사와 중국·태국·일본 관계 당국의 최신 공식 안내가 우선합니다.</p>
+    </footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

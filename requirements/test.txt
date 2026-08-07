@@ -1,0 +1,4 @@
+numpy>=1.26
+scikit-learn>=1.4
+python-dotenv>=1.0
+fastapi>=0.117.1,<1
