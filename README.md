@@ -50,3 +50,13 @@ cp -n .env.example .env
 Open <http://127.0.0.1:8000>.
 
 The Furiosa embedding and Chat integrations use OpenAI API-compatible request and response formats.
+
+## License
+
+CarryCheck's original source code, interface, documentation, dataset structure, and
+repository-authored summaries are available under the [MIT License](LICENSE).
+
+The airline, IATA, regulator, customs, and quarantine materials cited by the project remain
+subject to their respective owners' rights and terms. Source citations identify provenance;
+they do not relicense the underlying publications. See [Third-Party Source Notice](THIRD_PARTY_NOTICES.md)
+and [Regulatory Sources](docs/REGULATORY_SOURCES.md) for details.
