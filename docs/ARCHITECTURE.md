@@ -1,106 +1,127 @@
 # CarryCheck Architecture
 
-## Design Forces
+CarryCheck is optimized around one trust boundary: models may retrieve evidence and explain a result, but only deterministic code may set a baggage or journey status.
 
-Airline baggage guidance combines semantic language, exact numerical limits, carrier-specific approval, departure security, and destination law. A single generative prompt cannot reliably preserve all of those boundaries, and a single retrieval method is weak either at paraphrases or at exact units. CarryCheck therefore uses application-controlled orchestration: retrieval selects evidence, deterministic engines own statuses, and the LLM owns wording only.
+![CarryCheck architecture showing the retrieval models, deterministic decision layer, explanation models, guardrail, and measured effects](assets/architecture-model-map.svg)
 
-## Component Decisions
+## How the Design Improves Performance
 
-### 1. Validation and Structured Item Parsing
+### 1. Improve recall without losing exact matches
 
-**Why:** A threshold engine cannot distinguish `20,000mAh` safely without voltage, and values such as `NaN`, infinity, or unsupported fields can bypass ordinary comparisons.
+Semantic and lexical retrieval run in parallel. Dense embeddings find paraphrases, BM25 preserves exact numbers and rule identifiers, and Reciprocal Rank Fusion combines their rank positions without calibrating incompatible scores.
 
-**Role:** The HTTP layer validates the request shape and accepted overrides. The domain parser extracts item type, route, `mL`, `mAh`, `V`, `Wh`, weight, quantity, battery condition, packaging, and exception flags. Missing values remain explicit and lead to `needs_information` when they are required for a safe decision.
+> **Measured outcome:** Hybrid Recall@3 was `1.00` on the 10-question presentation set. BM25 MRR was `0.95`, higher than Hybrid `0.933`, so fusion is retained for complementary behavior rather than a demonstrated MRR gain.
 
-**Effect:** The system fails closed on ambiguous capacity and rejects non-finite or unknown overrides before policy evaluation.
+### 2. Remove numerical decisions from generation
 
-### 2. Hybrid Retrieval
+The rule engine calculates `Wh = mAh × V ÷ 1000`, capacity bands, quantities, packaging conditions, and carry-on or checked-baggage status. Country evaluators then apply departure, transit, customs, quarantine, and import gates without merging those legal meanings.
 
-**Why:** Dense retrieval handles paraphrases such as “portable charger” and “power bank,” while BM25 is stronger for exact strings such as `100Wh`, `160Wh`, `100mL`, and rule IDs. Their raw scores have different scales.
+> **Measured outcome:** Carry-on and checked-baggage statuses matched all 10 expected presentation cases.
 
-**Role:** API mode uses Qwen3 embeddings through the Furiosa endpoint; local mode substitutes character TF-IDF. Both paths run alongside Okapi BM25, and Reciprocal Rank Fusion combines rank positions without score calibration.
+### 3. Generate from compact verified context
 
-**Effect:** Dense, BM25, and Hybrid all reached Recall@3 of 1.00 on the 10-question presentation set. Their MRR values were 0.80, 0.95, and 0.933 respectively, so the small evaluation did not demonstrate a ranking gain from fusion; its architectural value is complementary retrieval behavior that needs a larger test set.
+Only the fixed decision, conditions, missing information, and selected official evidence reach the Chat model. The returned envelope must repeat the verified statuses and cite only supplied rule IDs.
 
-### 3. Deterministic Baggage Engine
+> **Measured outcome:** Context fell from `4,396` to `2,699` tokens for one identical request, saving `1,697` tokens or `38.6%`; all `10/10` presentation guardrail cases passed.
 
-**Why:** Battery and liquid policies contain arithmetic, inclusive boundaries, quantity caps, and approval bands that an LLM can restate incorrectly.
+## Models and Selection Rationale
 
-**Role:** The engine calculates `Wh = mAh × V / 1000`, selects the applicable airline rule, applies capacity and count boundaries, and produces carry-on, checked-baggage, conditions, exceptions, and missing-information fields. Retrieved chunks support the decision but cannot directly set a status.
+### `furiosa-ai/Qwen3-Embedding-8B` — semantic retrieval
 
-**Effect:** Carry-on and checked-baggage outputs matched all 10 expected presentation cases. Boundary and missing-information behavior is covered by regression tests rather than model prompts.
+- **Used in:** the August 2026 presentation and the current API retrieval profile.
+- **Why:** item descriptions vary even when their meaning is equivalent, such as “power bank” and “portable charger.” An embedding model supplies that semantic path while BM25 protects exact regulatory strings.
+- **Measured contribution:** Dense retrieval reached Recall@3 `1.00` and MRR `0.80` on the presentation set.
+- **Boundary:** embeddings rank evidence; they cannot set a status or create a rule.
 
-### 4. Independent Country Policy Gates
+### BM25 + RRF — exact retrieval and fusion
 
-**Why:** Airline carriage, departure security, transit screening, customs declaration, quarantine, and import prohibition are different legal or operational questions.
+- **Used in:** every runtime profile; these are retrieval algorithms, not generative models.
+- **Why:** values such as `100Wh`, `160Wh`, `100mL`, `CCC`, and source IDs carry exact meaning. BM25 ranks those strings strongly, while RRF merges its result with Dense retrieval using rank positions.
+- **Measured contribution:** BM25 MRR was `0.95`; Hybrid Recall@3 remained `1.00` and MRR was `0.933`.
+- **Boundary:** the small set did not prove that Hybrid ranking beats BM25. A larger versioned evaluation set is required.
 
-**Role:** Country evaluators apply origin, destination, and transit context after the airline decision. Journey status conservatively combines applicable gates, while the response preserves aviation and entry results separately.
+### Deterministic Python — authoritative decision layer
 
-**Effect:** A declaration requirement does not become an aviation prohibition, and an item accepted by an airline can still be rejected by destination import rules.
+- **Used in:** airline, origin, transit, and destination evaluation.
+- **Why:** arithmetic, inclusive boundaries, approval bands, and legal states must be reproducible and regression-testable. A language model is intentionally not used for these decisions.
+- **Measured contribution:** `100%` carry-on and checked-status match on the 10 presentation cases.
+- **Boundary:** unknown items or missing safety-critical values return `needs_information` instead of an inferred permission.
 
-### 5. Compact Verified Context
+### `furiosa-ai/Qwen3-32B-FP8` — measured presentation generator
 
-**Why:** Passing the full regulation corpus increases token use and introduces irrelevant rules into the generation context.
+- **Used in:** the presented Agent Loop, web screenshot, and token comparison.
+- **Why:** the course environment used this Furiosa-hosted generative model for tool-oriented, structured explanations. Its job was narrowed to explaining retrieved evidence and fixed statuses, rather than recalling regulations or calculating limits.
+- **Measured contribution:** the Agent Loop completed one `search_rules` call and two iterations with verified output; selective context produced the reported `38.6%` token reduction.
+- **Boundary:** the reduction comes from orchestration and context selection, not a benchmark proving that this model alone is more efficient.
 
-**Role:** The application compacts the fixed decision, reasons, conditions, missing information, and a bounded set of retrieved rules before calling the Chat model.
+### `furiosa-ai/gpt-oss-120b` — current configurable Chat default
 
-**Effect:** The presentation comparison fell from 4,396 to 2,699 total tokens, saving 1,697 tokens or 38.6%.
+- **Used in:** the current `.env.example` Chat configuration through an OpenAI API-compatible endpoint.
+- **Why:** it occupies the same constrained explanation role behind the shared Chat client and structured guardrail. The model can be replaced without changing the deterministic decision boundary.
+- **Measured contribution:** none of the presentation numbers are attributed to this later default.
+- **Boundary:** strict API mode exposes Chat failure as `ai_answer.status=error`; it does not label a template as verified model output.
 
-### 6. Verified Answer Agent
+### Local profile — no external model calls
 
-**Why:** An explanation model can contradict a rule engine, cite a nonexistent source, emit malformed JSON, or follow instructions embedded in retrieved text.
+The local profile replaces API embeddings with character TF-IDF and does not construct external Chat clients. It exists for deterministic functional verification, not as a performance-equivalent substitute for the API profile.
 
-**Role:** The prompt treats retrieved text as data, not instructions. The model must return a structured envelope containing the carry-on, checked-baggage, and journey statuses plus cited rule IDs. The application accepts the answer only when all statuses match and every cited ID belongs to the verified context; strict API mode exposes failure instead of presenting an unverified template as model output.
+## Component Chain
 
-**Effect:** All 10 presentation guardrail cases passed. Regression tests also cover plain-text output, empty output, malformed structures, unknown citations, and status mismatch.
-
-### 7. Shared Adapters and Observable Runtime Profiles
-
-**Why:** Duplicated local and serverless decision paths cause response drift, and silent fallback makes API demonstrations impossible to audit.
-
-**Role:** Local HTTP and the Vercel FastAPI adapter call the same request validator and `build_response_payload` function. The `api` profile requires both Furiosa credentials and does not silently switch to local retrieval or a local Chat model.
-
-**Effect:** Integration tests enforce a shared response shape, while `/api/health` exposes the active retrieval and Chat modes.
-
-## End-to-End Data Flow
-
-```text
-request
-  -> schema and numeric validation
-  -> structured item profile
-  -> dense retrieval + BM25
-  -> RRF-ranked evidence
-  -> deterministic airline decision
-  -> origin / destination / transit policy gates
-  -> compact verified context
-  -> optional Chat explanation
-  -> status and source-ID validation
-  -> separated decision, country_checks, and ai_answer response
+```mermaid
+flowchart TB
+    REQUEST[Request schema] --> PROFILE[Structured item profile]
+    PROFILE --> SEARCH[Qwen3 embeddings + BM25 + RRF]
+    SEARCH --> RULES[Airline rule engine]
+    PROFILE --> RULES
+    RULES --> GATES[Origin · transit · destination gates]
+    GATES --> CONTEXT[Compact verified context]
+    CONTEXT --> CHAT[Configured Furiosa Chat model]
+    CHAT --> VERIFY[Status + source-ID guardrail]
+    VERIFY --> RESPONSE[decision · country_checks · ai_answer]
 ```
+
+### Input boundary
+
+The HTTP layer rejects unknown overrides, invalid choices, non-finite values, and unrealistic numeric inputs. The parser preserves missing values explicitly and extracts route, item type, `mL`, `mAh`, `V`, `Wh`, weight, quantity, battery condition, and packaging.
+
+### Decision boundary
+
+Retrieved chunks support the decision but cannot directly set it. Airline carriage and destination entry remain separate response fields so a customs declaration cannot become an aviation prohibition.
+
+### Generation boundary
+
+Retrieved text is treated as untrusted data, not instructions. Plain text, malformed JSON, empty output, unknown citations, and status mismatches are rejected.
+
+### Runtime boundary
+
+Local HTTP and the Vercel adapter share request validation and `build_response_payload`, preventing duplicated decision paths. `/api/health` exposes the active retrieval and Chat modes, while the strict API profile requires both Furiosa credentials and never silently switches to local retrieval.
 
 ## Safety Invariants
 
-1. Only deterministic code can set transport or journey statuses.
-2. Unknown items and missing critical measurements cannot become `allowed` by inference.
-3. Air carriage and destination entry remain separate response fields.
-4. Every applied or cited rule ID must resolve to a committed official source.
+1. Only deterministic code sets transport or journey statuses.
+2. Missing critical measurements cannot become `allowed` by inference.
+3. Air carriage and destination entry remain separate.
+4. Every applied or cited rule ID resolves to a committed official source.
 5. Duplicate JSON keys, duplicate rule IDs, invalid dates, and non-HTTPS sources fail during dataset loading.
 6. Local HTTP and Vercel use one response assembly path.
 7. Chat failures never alter or remove the deterministic result.
 
-## Performance Interpretation
+## Presentation and Current Runtime
 
-The current measurements prove prototype behavior only on 10 curated questions. Recall@3 saturation means the set is too small to distinguish retrievers, and Hybrid MRR being below BM25 means fusion should not be described as a measured ranking improvement. The clearest measured architecture benefit is the 38.6% token reduction, while decision and guardrail correctness require a larger versioned evaluation set before production claims are justified.
+**August 2026 presentation**
 
-## Presentation Snapshot vs Current Implementation
+- Qwen3-Embedding-8B retrieval
+- Qwen3-32B-FP8 explanation
+- Model-selected `search_rules` call
+- Harness validation of tool use, statuses, numbers, and source IDs
+- Historical 10-question evaluation and one-request token comparison
 
-| Concern | August 2026 presentation | Current public implementation |
-| --- | --- | --- |
-| Semantic retriever | `furiosa-ai/Qwen3-Embedding-8B` | Same API default; character TF-IDF in local mode |
-| Explanation model | `furiosa-ai/Qwen3-32B-FP8` | Configurable; `.env.example` selects `furiosa-ai/gpt-oss-120b` |
-| Orchestration | Model-selected `search_rules` call followed by Harness validation | Application-controlled retrieval, deterministic evaluation, and compact context before Chat |
-| Validation scope | Tool use, statuses, numerical claims, and source IDs | Status and source-ID envelope; numerical authority remains in deterministic output |
-| Failure behavior | Retry or safely substitute the rule-based response | Keep the rule result and expose Chat failure as `ai_answer.status=error` in strict API mode |
-| Evidence | 10-question evaluation and one token-comparison request | Historical results are documented but not claimed as current-model benchmarks |
+**Current public repository**
 
-The presentation architecture and current implementation preserve the same trust boundary: retrieval and generation may assist, but deterministic code owns the decision. The mapping above documents later engineering changes without rewriting the historical experiment. Full metrics and the recorded UI execution are available in [Evaluation and Presentation Measurements](EVALUATION.md).
+- Same API embedding default, with character TF-IDF in local mode
+- Configurable Chat model; `.env.example` selects gpt-oss-120b
+- Application-controlled retrieval and compact context before Chat
+- Deterministic output preserved with explicit Chat-error reporting
+- Historical presentation numbers documented but not presented as current-model benchmarks
+
+See [Evaluation and Presentation Measurements](EVALUATION.md) for the exact results and limitations.

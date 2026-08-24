@@ -1,118 +1,133 @@
 # CarryCheck Project Report
 
-## Course and Team
+## Course
 
-- **Program:** Furiosa AI GPU/NPU-based LLM Agent and RAG Practice
+- **Program:** FuriosaAI GPU/NPU-Based RAG and LLM Agent Practice
 - **Organizer:** Next-Generation Semiconductor Innovative Convergence University Project Group, Soongsil University
 - **Schedule:** July 30–31 and August 7, 2026
-- **Presentation:** August 7, 2026, Furiosa AI final presentation
+- **Final presentation:** August 7, 2026
 - **Team:** Team 7
-- **Presentation models:** `furiosa-ai/Qwen3-Embedding-8B` and `furiosa-ai/Qwen3-32B-FP8`
 
-The short course covered LLM agents, retrieval-augmented generation, tool use, guardrails, retrieval evaluation, and inference efficiency. CarryCheck was built as the team's course project to demonstrate those concepts in an evidence-sensitive travel domain.
+The short course covered LLM agents, retrieval-augmented generation, tool use, guardrails, retrieval evaluation, and inference efficiency. CarryCheck was built as the course project to demonstrate those concepts in an evidence-sensitive travel domain.
 
-## Problem and Goal
+## Problem and User Experience
 
-Passengers normally have to inspect airline, departure-country, transit, and destination-country websites separately. Regulations change over time, and the answer depends on details such as carrier, route, capacity, quantity, packaging, and customs or quarantine requirements. Asking a generative model to decide directly can produce incorrect limits or merge legally distinct rules. CarryCheck therefore retrieves current evidence, calculates transport decisions deterministically, and uses an LLM only to explain a verified result.
+Passengers normally have to inspect the operating airline, departure country, transit airport, and destination authorities separately. Regulations change, and the answer depends on capacity, quantity, packaging, route, customs, and quarantine conditions. CarryCheck accepts those trip details in one item description and returns separated carriage and entry results with conditions and official evidence.
 
 The presentation used this representative request:
 
 > On an Asiana international flight from the Republic of Korea to Japan, can I carry two 10,000 mL liquid containers?
 
-The required inputs are the airline, origin, destination, optional transit country, route type, and a natural-language item description.
+## System at a Glance
 
-## Presentation Architecture
+![CarryCheck architecture showing retrieval, deterministic decisions, explanation models, guardrails, and measured effects](assets/architecture-model-map.svg)
+
+The system was designed as an evidence-first Agent Loop. Retrieval narrows the applicable rules, deterministic code calculates the statuses, and a generative model explains only the verified result. This division improves retrieval coverage and context efficiency without transferring numerical or legal authority to the LLM.
+
+## Models, Components, and Rationale
+
+### Retrieve — `furiosa-ai/Qwen3-Embedding-8B` + BM25 + RRF
+
+Qwen3-Embedding-8B was the actual Dense retrieval model used in the presentation and remains the API embedding default. It was selected to find semantically equivalent item descriptions that do not share the same words. BM25 runs beside it because regulatory queries depend on exact values such as `100Wh`, `160Wh`, `100mL`, and `CCC`; RRF combines both rank orders without score calibration.
+
+**Observed result:** Dense, BM25, and Hybrid Recall@3 were all `1.00`. Their MRR values were `0.80`, `0.95`, and `0.933`, so the experiment supports complementary coverage but does not show a Hybrid MRR improvement over BM25.
+
+### Decide — deterministic airline and country engines
+
+No language model is allowed to calculate the final status. Python code evaluates `Wh = mAh × V ÷ 1000`, container size, total capacity, count, packaging, approval bands, and separate departure, transit, customs, quarantine, or import gates. Missing voltage or another safety-critical value produces `needs_information`, not an assumed permission.
+
+**Observed result:** carry-on and checked-baggage outputs matched all 10 expected presentation cases.
+
+### Explain — `furiosa-ai/Qwen3-32B-FP8`
+
+Qwen3-32B-FP8 was the actual presentation model used for the Agent Loop, web demonstration, and token comparison. It was used as a Furiosa-hosted structured explanation model after evidence and statuses were fixed. The `search_rules` tool limited its context, and the Harness validated tool use, status values, numerical claims, and cited source IDs.
+
+**Observed result:** one identical request fell from `4,396` to `2,699` tokens, saving `1,697` or `38.6%`; all `10/10` status and source guardrail cases passed. The improvement belongs to the retrieval-and-compaction design, not to an isolated model benchmark.
+
+### Current Chat default — `furiosa-ai/gpt-oss-120b`
+
+The current public repository uses gpt-oss-120b as the configurable `.env.example` default through an OpenAI API-compatible Chat endpoint. It performs the same constrained explanation role after application-controlled retrieval. No historical presentation metric is attributed to this later model choice.
+
+## How the Composition Creates the Result
 
 ```mermaid
-flowchart LR
-    INPUT[Route and item query] --> RETRIEVE[Dense + BM25 retrieval]
-    RETRIEVE --> TOOL[search_rules tool call]
-    TOOL --> HARNESS[Harness validation]
-    HARNESS --> GENERATE[Qwen3-32B-FP8 explanation]
-    GENERATE --> OUTPUT[Verified answer and official sources]
-    GENERATE -. status, number, or source mismatch .-> HARNESS
+flowchart TB
+    A[Semantic recall<br/>Qwen3-Embedding-8B] --> C[Relevant evidence]
+    B[Exact recall<br/>BM25] --> C
+    C --> D[Deterministic decision]
+    D --> E[Compact verified context]
+    E --> F[Qwen3-32B-FP8 explanation]
+    F --> G[Harness validation]
+    G --> H[Grounded answer]
 ```
 
-The presentation implementation treated the system as a verified Agent Loop. Qwen3-Embedding-8B supplied semantic retrieval, BM25 supplied exact matching, Reciprocal Rank Fusion combined both rankings, and `search_rules` exposed only relevant evidence to the agent. The Harness validated the tool call, computed states, numerical claims, and source IDs before an explanation was accepted. The design prevented the LLM from changing a deterministic baggage decision.
+1. **Hybrid retrieval** prevents vocabulary differences from hiding evidence while preserving exact regulatory tokens.
+2. **Deterministic ownership** makes numerical boundaries reproducible and prevents generated prose from changing legal states.
+3. **Compact context** removes unrelated rules before generation, producing the measured token reduction.
+4. **Post-generation validation** rejects state or source drift before the answer is displayed.
 
-## Why Each Layer Exists
-
-| Layer | Role | Technical reason |
-| --- | --- | --- |
-| Structured parsing | Extract item, route, `mL`, `mAh`, `V`, `Wh`, weight, and quantity | Policy thresholds cannot safely operate on ambiguous free text |
-| Dense retrieval | Match semantic paraphrases such as “power bank” and “portable charger” | Equivalent items may use different vocabulary |
-| BM25 retrieval | Match exact values and identifiers such as `100Wh`, `160Wh`, `100mL`, and `CCC` | Regulatory meaning often depends on exact strings |
-| RRF | Fuse Dense and BM25 rank positions | The two retrievers produce scores on different scales |
-| Rule engine | Calculate limits and set carry-on and checked statuses | Numerical and boundary decisions must not depend on generated prose |
-| Country policy gates | Keep departure security, transit, customs, quarantine, and import checks distinct | Airline acceptance does not imply legal entry at the destination |
-| Agent tool | Request only the evidence needed for the current item and route | Smaller context reduces irrelevant rules and token use |
-| Harness | Validate status, numbers, tool use, and source IDs | A fluent explanation can still contradict the verified state |
-| Generator | Turn the verified decision and evidence into readable guidance | Natural-language explanation is useful after the decision is fixed |
-
-Retrieved rules were organized around six fields: airline, origin, destination, item, numerical values, and source ID.
-
-## Decision and Failure Semantics
-
-Battery capacity is calculated as `Wh = mAh × V ÷ 1000`. If voltage is missing, the system does not invent it; the result becomes `needs_information` where the missing value prevents a safe decision. The engine compares battery watt-hours, liquid container size, total capacity, quantity, packaging, and carrier approval bands. “Uncertain” therefore means that more information is required, not that an item is allowed.
-
-The presentation Harness rejected status mismatches and unknown source IDs, retried when the agent did not call the retrieval tool, and described an API or validation fallback to the rule-based result. The current public implementation preserves the deterministic result but reports Chat failure explicitly in strict API mode, so an unverified template is not presented as model output.
+Retrieved rules were structured around airline, origin, destination, item, numerical values, and source ID. That structure let the Harness validate the answer against explicit fields rather than judging prose similarity.
 
 ## Demonstrated Case
 
-The recorded web screen evaluated two `20,000mAh`, `3.7V` power banks on an Asiana domestic route within Japan. The engine calculated `74.0Wh` per battery and returned conditional carry-on, prohibited checked baggage, and an overall conditional status. Qwen3-32B-FP8 produced the explanation without changing those states, and the interface exposed reasons, conditions, exceptions, official rule IDs, verification date, model name, token use, and iteration count. The complete screenshot telemetry and Japan conditions are preserved in [Evaluation and Presentation Measurements](EVALUATION.md#recorded-web-demonstration).
+The recorded screen evaluated two `20,000mAh`, `3.7V` power banks on an Asiana domestic route within Japan. The engine calculated `74.0Wh` per battery and returned conditional carry-on, prohibited checked baggage, and an overall conditional result. The interface exposed reasons, conditions, exceptions, official rule IDs, verification date, model name, token usage, and iteration count.
 
-## Results
+The screen recorded Qwen3-32B-FP8, `2,557` tokens, two iterations, and sources `ASIANA-POWER-BANK` and `JP-MLIT-POWER-BANK-2026`, verified August 5, 2026. See [Evaluation](EVALUATION.md#recorded-web-demonstration) for all conditions and the distinction from the separate 2,699-token comparison.
 
-| Area | Presentation result | Interpretation |
-| --- | ---: | --- |
-| Dense / BM25 / Hybrid Recall@3 | 1.00 / 1.00 / 1.00 | Every method found a relevant rule in the top three for all 10 questions |
-| Dense / BM25 / Hybrid MRR | 0.80 / 0.95 / 0.933 | BM25 ranked first relevant evidence best on the small set |
-| Carry-on and checked decision match | 100% | Both transport states matched all expected cases |
-| Status and source guardrails | 10/10 passed | Generated envelopes preserved states and known sources |
-| Full rules vs Agent Loop | 4,396 vs 2,699 tokens | 1,697 tokens, or 38.6%, were saved in one identical-request comparison |
+## Performance
 
-See [Evaluation and Presentation Measurements](EVALUATION.md) for charts, exact values, experiment distinctions, and limitations.
+![CarryCheck RAG performance summary](assets/performance-summary.svg)
 
-## Presentation Snapshot and Current Repository
+The measurements show three prototype outcomes: relevant evidence appeared in the top three, deterministic decisions stayed aligned with expected statuses, and selected evidence reduced generation context. The 10-question set is too small for production or generalization claims; full values and limitations are preserved in [Evaluation](EVALUATION.md).
 
-| Concern | August 2026 presentation | Current public repository |
-| --- | --- | --- |
-| Embedding model | `furiosa-ai/Qwen3-Embedding-8B` | Same API default; local profile uses character TF-IDF |
-| Explanation model | `furiosa-ai/Qwen3-32B-FP8` | Configurable; `.env.example` currently selects `furiosa-ai/gpt-oss-120b` |
-| Agent control | Model-selected `search_rules` tool in an Agent Loop | Application-controlled retrieval and compact context before generation |
-| Validation | Harness checks tool use, statuses, numbers, and source IDs | Response guardrail checks statuses and source IDs; rule code remains authoritative |
-| Failure behavior | Retry or substitute the rule-based answer | Preserve deterministic results and expose `ai_answer.status=error` in strict API mode |
-| Measurements | Historical 10-question and single-request results | Not automatically reproduced by the current test suite |
+## Presentation and Current Repository
 
-This mapping keeps the public documentation auditable: presentation results are retained as historical evidence without implying that later implementation choices were part of the measured run.
+### August 2026 presentation snapshot
+
+- Qwen3-Embedding-8B for Dense retrieval
+- Qwen3-32B-FP8 for the Agent Loop and explanations
+- Model-selected `search_rules` call followed by Harness validation
+- Retry or rule-based substitution on missing tool calls, validation failure, or API error
+- Historical 10-question evaluation and one-request token comparison
+
+### Current public implementation
+
+- Same API embedding default, plus character TF-IDF in the no-API local profile
+- Configurable gpt-oss-120b Chat default
+- Application-controlled retrieval and compact context before generation
+- Explicit `ai_answer.status=error` in strict API mode while deterministic results remain available
+- Historical presentation measurements documented without relabeling them as current-model results
+
+The trust boundary remains unchanged: models assist retrieval and explanation, while deterministic code owns the decision.
 
 ## Lessons and Review Feedback
 
-- Selective RAG can improve cost efficiency while retaining accuracy when only relevant evidence reaches the model.
-- Efficiency decisions at retrieval and context assembly can improve the behavior of the entire service, not only one prompt.
-- Adding post-generation validation creates another potential bottleneck; its latency and cost should be measured explicitly.
-- Future agent evaluation could penalize incorrect tool calls, unnecessary backtracking, and expensive recovery paths.
+- Selective RAG can reduce context cost while retaining relevant evidence.
+- Retrieval and context design can improve efficiency across the entire service, not only one prompt.
+- Post-generation validation creates a new latency and cost bottleneck that should be measured.
+- Future trajectory evaluation could penalize incorrect tool calls, unnecessary backtracking, and expensive recovery paths.
 
-These last two points came from the recorded course review and are design recommendations, not measured results of this repository.
+The last two items are recommendations from the recorded course review, not measured results of this repository.
 
 ## Roadmap
 
-- Automate monitoring and updates for official China, Thailand, and Japan regulations.
-- Evaluate `Qwen3-Reranker-8B` after hybrid retrieval.
-- Publish a larger, versioned evaluation set based on real user questions, including accuracy, latency, and cost.
+- Automate official-rule monitoring for China, Thailand, and Japan.
+- Evaluate `Qwen3-Reranker-8B` after Hybrid retrieval; it is not used in the current system.
+- Publish a larger, versioned evaluation set based on real user questions.
+- Measure accuracy, latency, token cost, Harness overhead, and tool-recovery trajectories.
 - Expand airline, country, transit, and item coverage.
-- Measure Harness overhead and add trajectory metrics for tool-call errors and recovery.
 
-## Presentation Coverage
+<details>
+<summary><strong>Presentation coverage: slides 1–9</strong></summary>
 
-| Slide | Subject | Public documentation |
-| ---: | --- | --- |
-| 1 | Project, team, and models | Course and Team |
-| 2 | Problem and target experience | Problem and Goal |
-| 3 | Verified Agent Loop | Presentation Architecture |
-| 4 | Dense, BM25, and RRF | Why Each Layer Exists |
-| 5 | Rule engine and Harness failures | Decision and Failure Semantics |
-| 6 | Web demonstration | Demonstrated Case and evaluation telemetry |
-| 7 | Retrieval and decision evaluation | Results and evaluation charts |
-| 8 | Agent Loop token reduction | Results and token comparison |
-| 9 | Lessons and next steps | Lessons, Review Feedback, and Roadmap |
+1. Project, course, team, and presentation models
+2. Fragmented regulations and the target user experience
+3. Verified Agent Loop architecture
+4. Dense, BM25, and RRF retrieval
+5. Deterministic decisions and Harness failures
+6. Recorded web demonstration
+7. Retrieval, decision, and guardrail evaluation
+8. Agent Loop token reduction
+9. Lessons, review feedback, and roadmap
+
+</details>

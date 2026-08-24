@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="610" viewBox="0 0 1200 610" role="img" aria-labelledby="title description">
+  <title id="title">CarryCheck model and component architecture</title>
+  <desc id="description">Three-stage architecture. Qwen3-Embedding-8B and BM25 retrieve evidence with RRF. Deterministic Python rules calculate baggage and country decisions. Qwen3-32B-FP8 in the presentation, or configurable gpt-oss-120b in the current repository, explains compact verified context before a status and source guardrail.</desc>
+  <rect width="1200" height="610" rx="24" fill="#f8faf9"/>
+  <text x="54" y="56" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#173b35">Evidence before generation</text>
+  <text x="54" y="84" font-family="Arial, sans-serif" font-size="14" fill="#5e706c">Models retrieve and explain · deterministic code owns the decision</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="54" y="118" width="330" height="360" rx="18" fill="#e8f3f0" stroke="#70aa9e" stroke-width="2"/>
+    <text x="82" y="157" font-size="15" font-weight="700" fill="#087f6d">01 · RETRIEVE</text>
+    <text x="82" y="197" font-size="23" font-weight="700" fill="#173b35">Qwen3-Embedding-8B</text>
+    <text x="82" y="224" font-size="14" fill="#405d57">Semantic paraphrases</text>
+    <line x1="82" y1="248" x2="356" y2="248" stroke="#b4cfca"/>
+    <text x="82" y="282" font-size="21" font-weight="700" fill="#173b35">BM25</text>
+    <text x="82" y="308" font-size="14" fill="#405d57">Exact numbers, units, and IDs</text>
+    <line x1="82" y1="331" x2="356" y2="331" stroke="#b4cfca"/>
+    <text x="82" y="366" font-size="21" font-weight="700" fill="#173b35">RRF fusion</text>
+    <text x="82" y="392" font-size="14" fill="#405d57">Combines ranks without score calibration</text>
+    <rect x="82" y="420" width="196" height="35" rx="17" fill="#087f6d"/>
+    <text x="180" y="443" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">Hybrid Recall@3 · 1.00</text>
+
+    <path d="M400 298 H422" stroke="#6e7f7b" stroke-width="3"/>
+    <path d="M416 290 L428 298 L416 306" fill="none" stroke="#6e7f7b" stroke-width="3"/>
+
+    <rect x="435" y="118" width="330" height="360" rx="18" fill="#fff4df" stroke="#e0a953" stroke-width="2"/>
+    <text x="463" y="157" font-size="15" font-weight="700" fill="#b86400">02 · DECIDE</text>
+    <text x="463" y="197" font-size="23" font-weight="700" fill="#513000">Deterministic Python</text>
+    <text x="463" y="230" font-size="15" fill="#684817">Wh calculation and quantity limits</text>
+    <text x="463" y="258" font-size="15" fill="#684817">Carry-on and checked-baggage status</text>
+    <text x="463" y="286" font-size="15" fill="#684817">Origin, transit, and destination gates</text>
+    <line x1="463" y1="318" x2="737" y2="318" stroke="#e5c894"/>
+    <text x="463" y="354" font-size="17" font-weight="700" fill="#513000">Why no decision model?</text>
+    <text x="463" y="380" font-size="14" fill="#684817">Thresholds and legal states must remain</text>
+    <text x="463" y="401" font-size="14" fill="#684817">reproducible and testable.</text>
+    <rect x="463" y="420" width="194" height="35" rx="17" fill="#d17a00"/>
+    <text x="560" y="443" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">Status match · 100%</text>
+
+    <path d="M781 298 H803" stroke="#6e7f7b" stroke-width="3"/>
+    <path d="M797 290 L809 298 L797 306" fill="none" stroke="#6e7f7b" stroke-width="3"/>
+
+    <rect x="816" y="118" width="330" height="360" rx="18" fill="#eef1f5" stroke="#91a0ab" stroke-width="2"/>
+    <text x="844" y="157" font-size="15" font-weight="700" fill="#526674">03 · EXPLAIN + VERIFY</text>
+    <text x="844" y="197" font-size="21" font-weight="700" fill="#20303c">Qwen3-32B-FP8</text>
+    <text x="844" y="223" font-size="13" fill="#526674">Measured presentation model</text>
+    <text x="844" y="257" font-size="18" font-weight="700" fill="#20303c">gpt-oss-120b</text>
+    <text x="844" y="282" font-size="13" fill="#526674">Current configurable default</text>
+    <line x1="844" y1="307" x2="1118" y2="307" stroke="#c9d0d5"/>
+    <text x="844" y="341" font-size="15" fill="#344b59">Compact verified context only</text>
+    <text x="844" y="368" font-size="15" fill="#344b59">Structured status and source envelope</text>
+    <text x="844" y="395" font-size="15" fill="#344b59">Harness rejects mismatches</text>
+    <rect x="844" y="420" width="130" height="35" rx="17" fill="#657786"/>
+    <text x="909" y="443" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">−38.6% tokens</text>
+    <rect x="982" y="420" width="136" height="35" rx="17" fill="#657786"/>
+    <text x="1050" y="443" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">10/10 guardrails</text>
+  </g>
+
+  <rect x="54" y="514" width="1092" height="55" rx="14" fill="#173b35"/>
+  <text x="600" y="548" font-family="Arial, sans-serif" font-size="17" font-weight="700" text-anchor="middle" fill="#ffffff">Trust boundary: retrieved text and generated prose can never overwrite deterministic statuses.</text>
+</svg>

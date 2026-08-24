@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" role="img" aria-labelledby="title description">
+  <title id="title">Cumulative regulatory gates</title>
+  <desc id="description">A baggage decision passes through an international dangerous-goods baseline, operating-airline acceptance, departure security, transit screening when applicable, and destination customs, quarantine, and permits. Every applicable gate must pass.</desc>
+  <rect width="1100" height="520" rx="24" fill="#f8faf9"/>
+  <text x="54" y="55" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#173b35">One trip, multiple independent gates</text>
+  <text x="54" y="83" font-family="Arial, sans-serif" font-size="14" fill="#5e706c">A carriage approval never guarantees departure clearance or destination entry.</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="70" y="118" width="960" height="58" rx="14" fill="#e8f3f0" stroke="#70aa9e"/>
+    <circle cx="105" cy="147" r="19" fill="#087f6d"/>
+    <text x="105" y="153" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff">1</text>
+    <text x="140" y="143" font-size="18" font-weight="700" fill="#173b35">International baseline</text>
+    <text x="140" y="164" font-size="13" fill="#405d57">IATA / ICAO dangerous-goods guidance</text>
+
+    <path d="M550 176 V195" stroke="#6e7f7b" stroke-width="3"/><path d="M542 189 L550 201 L558 189" fill="none" stroke="#6e7f7b" stroke-width="3"/>
+    <rect x="70" y="205" width="960" height="58" rx="14" fill="#e8f3f0" stroke="#70aa9e"/>
+    <circle cx="105" cy="234" r="19" fill="#087f6d"/>
+    <text x="105" y="240" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff">2</text>
+    <text x="140" y="230" font-size="18" font-weight="700" fill="#173b35">Operating-airline acceptance</text>
+    <text x="140" y="251" font-size="13" fill="#405d57">Carrier approval bands, count limits, packaging, and aircraft-specific controls</text>
+
+    <path d="M550 263 V282" stroke="#6e7f7b" stroke-width="3"/><path d="M542 276 L550 288 L558 276" fill="none" stroke="#6e7f7b" stroke-width="3"/>
+    <rect x="70" y="292" width="960" height="58" rx="14" fill="#fff4df" stroke="#e0a953"/>
+    <circle cx="105" cy="321" r="19" fill="#d17a00"/>
+    <text x="105" y="327" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff">3</text>
+    <text x="140" y="317" font-size="18" font-weight="700" fill="#513000">Departure and transit security</text>
+    <text x="140" y="338" font-size="13" fill="#684817">Origin rules always apply; transit rules apply again when the passenger is rescreened</text>
+
+    <path d="M550 350 V369" stroke="#6e7f7b" stroke-width="3"/><path d="M542 363 L550 375 L558 363" fill="none" stroke="#6e7f7b" stroke-width="3"/>
+    <rect x="70" y="379" width="960" height="58" rx="14" fill="#eef1f5" stroke="#91a0ab"/>
+    <circle cx="105" cy="408" r="19" fill="#657786"/>
+    <text x="105" y="414" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff">4</text>
+    <text x="140" y="404" font-size="18" font-weight="700" fill="#20303c">Destination entry</text>
+    <text x="140" y="425" font-size="13" fill="#526674">Customs, tax, quarantine, medicines, prohibited imports, and permits</text>
+  </g>
+
+  <rect x="316" y="463" width="468" height="37" rx="18" fill="#173b35"/>
+  <text x="550" y="487" font-family="Arial, sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#ffffff">Final guidance = every applicable gate evaluated separately</text>
+</svg>

@@ -1,22 +1,10 @@
 # CarryCheck
 
-CarryCheck is a verified airline-baggage RAG agent that separates evidence retrieval, deterministic policy decisions, and generative explanations.
-
-## Course
-
-- **Program:** Furiosa AI GPU/NPU-based LLM Agent and RAG Practice
-- **Organizer:** Next-Generation Semiconductor Innovative Convergence University Project Group, Soongsil University
-- **Dates:** July 30–31 and August 7, 2026
-- **Topics:** LLM agents · RAG · tool use · guardrails · retrieval evaluation · inference efficiency
-- **Team deliverable:** Airline baggage and destination-entry policy agent
-
-See the [Project Report](docs/PRESENTATION_REPORT.md) for the course context, presentation design, lessons, and roadmap.
+CarryCheck is a verified airline-baggage RAG agent that separates evidence retrieval, deterministic policy decisions, and generative explanations. It was built with FuriosaAI during Soongsil University's **GPU/NPU-Based RAG and LLM Agent Practice** short course ([course details](docs/PRESENTATION_REPORT.md#course)).
 
 ## Project Overview
 
-CarryCheck evaluates airline acceptance, departure security, transit notices, and destination customs or quarantine as separate policy gates. It extracts measurements such as `mL`, `mAh`, `V`, `Wh`, weight, and quantity, retrieves the relevant official rules, and lets deterministic Python code decide the status. The Chat model receives only the verified result and supporting rule IDs, so it can explain but cannot change the decision.
-
-Supported scope: Korean Air, Asiana Airlines, Jeju Air, shared IATA guidance, and selected China, Thailand, and Japan policies. See [Regulatory Sources](docs/REGULATORY_SOURCES.md) for effective dates, rule dependencies, and coverage gaps, and [Security Policy](SECURITY.md) for responsible deployment guidance.
+Enter an airline, route, countries, and a natural-language item description. CarryCheck returns carry-on, checked-baggage, and destination-entry results with required conditions and official sources in one screen.
 
 ## Performance
 
@@ -24,70 +12,63 @@ Presentation snapshot: 10 curated questions; not a production benchmark.
 
 ![CarryCheck RAG performance: Hybrid Recall@3 1.00, 100% transport-status match with 10/10 guardrails, and 38.6% fewer tokens](docs/assets/performance-summary.svg)
 
-| RAG outcome | Result | Why it matters |
-| --- | ---: | --- |
-| Retrieval coverage | Hybrid Recall@3 **1.00** | Relevant evidence appeared within the top three results for all 10 questions |
-| Verified decisions | **100%** transport-status match; **10/10** guardrails passed | Generation preserved deterministic statuses and known source IDs |
-| Context efficiency | **4,396 → 2,699** tokens (**−38.6%**) | Selective evidence reduced one identical request by 1,697 tokens |
+- **Retrieval coverage ·** Hybrid Recall@3 **1.00** — relevant evidence appeared within the top three results for all 10 questions.
+- **Verified decisions ·** **100%** transport-status match and **10/10** guardrails passed — generation preserved deterministic statuses and known source IDs.
+- **Context efficiency ·** **4,396 → 2,699** tokens (**−38.6%**) — selective evidence removed 1,697 tokens from one identical request.
 
-See [Evaluation](docs/EVALUATION.md) for charts, exact scope, experiment details, and limitations.
+See [Evaluation](docs/EVALUATION.md) for complete measurements, experiment details, and limitations.
 
-## Architecture and Technical Rationale
+## Architecture
 
 ```mermaid
-flowchart LR
-    INPUT[Route and item text] --> PARSE[Validated structured input]
-    PARSE --> DENSE[Dense retrieval]
-    PARSE --> BM25[BM25 retrieval]
-    DENSE --> RRF[RRF rank fusion]
-    BM25 --> RRF
-    PARSE --> RULES[Deterministic baggage engine]
+flowchart TB
+    subgraph RETRIEVE["1 · RETRIEVE EVIDENCE"]
+        direction TB
+        INPUT[User input] --> PARSE[Parse and validate]
+        PARSE --> DENSE[Dense retrieval]
+        PARSE --> BM25[BM25 retrieval]
+        DENSE --> RRF[RRF fusion]
+        BM25 --> RRF
+    end
+
+    subgraph DECIDE["2 · DECIDE"]
+        direction TB
+        RULES[Deterministic rule engine] --> COUNTRY[Country policy gates]
+    end
+
+    subgraph EXPLAIN["3 · EXPLAIN"]
+        direction TB
+        CONTEXT[Compact verified context] --> LLM[Furiosa Chat explanation]
+        LLM --> GUARD[Status and source guardrail]
+        GUARD --> RESULT[Decision, explanation, and sources]
+    end
+
     RRF --> RULES
-    RULES --> COUNTRY[Departure and entry policy gates]
-    COUNTRY --> CONTEXT[Compact verified context]
-    CONTEXT --> LLM[Furiosa Chat model]
-    LLM --> GUARD[Status and source guardrail]
-    GUARD --> RESULT[Rule result plus explanation]
-    CONTEXT --> RESULT
+    PARSE --> RULES
+    COUNTRY --> CONTEXT
+
+    classDef evidence fill:#e8f3f0,stroke:#087f6d,color:#173b35;
+    classDef decision fill:#fff4df,stroke:#d17a00,color:#513000;
+    classDef explain fill:#eef1f5,stroke:#657786,color:#20303c;
+    class INPUT,PARSE,DENSE,BM25,RRF evidence;
+    class RULES,COUNTRY decision;
+    class CONTEXT,LLM,GUARD,RESULT explain;
 ```
 
-| Component | Why it exists | Technical responsibility | Observed effect |
-| --- | --- | --- | --- |
-| Input validation and parser | Policy thresholds cannot be applied safely to ambiguous or invalid values | Reject unknown overrides and non-finite values; extract item type, route, capacity, voltage, quantity, and exception flags | Missing safety-critical values return `needs_information` instead of optimistic permission |
-| Dense retrieval | Equivalent items can be described with different vocabulary | Furiosa Qwen3 embeddings in API mode; character TF-IDF in local mode | Recall@3 1.00 and MRR 0.80 on the 10-question presentation set |
-| BM25 retrieval | Regulations depend heavily on exact numbers, units, and IDs | Lexical ranking for terms such as `100Wh`, `160Wh`, `100mL`, and rule codes | MRR 0.95 on the presentation set |
-| RRF fusion | Dense and BM25 scores are not directly comparable | Merge both ranked lists without score calibration | Hybrid Recall@3 1.00 and MRR 0.933; no improvement over BM25 was demonstrated on the small set |
-| Deterministic baggage engine | An LLM can misstate numerical limits or conditional approvals | Calculate `Wh`, apply airline thresholds, and determine carry-on and checked-baggage statuses | Carry-on and checked-baggage decisions matched all 10 expected cases |
-| Country policy gates | Aircraft carriage and legal entry are different decisions | Apply origin security, destination customs/quarantine, and transit notices independently | Prevents a customs declaration from being mislabeled as an aviation prohibition |
-| Verified answer agent | Generative text is useful only after the decision is fixed | Send compact context, require matching statuses, and allow only retrieved rule IDs | 10/10 guardrail cases passed; invalid model output is rejected |
-| Compact context | Sending every regulation wastes tokens and increases irrelevant context | Limit the model input to the verified decision and selected evidence | 4,396 → 2,699 tokens, a 38.6% reduction |
-| Shared HTTP assembly | Separate local and serverless logic can drift | Reuse the same validation and response builder for local HTTP and Vercel | Identical response contract across deployment adapters |
+1. **Retrieve:** Qwen3 embeddings and BM25 find semantic and exact regulatory evidence, then RRF combines their rankings.
+2. **Decide:** Deterministic airline and country engines own every numerical calculation and status.
+3. **Explain:** The LLM receives only compact verified context, and the Harness rejects status or source-ID mismatches.
 
-The design prioritizes decision integrity over unrestricted agent autonomy. Retrieval may rank evidence and the LLM may phrase an answer, but only the rule engine and country evaluators can produce authoritative statuses. The API profile also avoids silent local fallback, making the model path and failures observable during evaluation.
-
-See [Architecture](docs/ARCHITECTURE.md) for component decisions, safety invariants, and the mapping between the presentation and current implementation.
+See [Architecture](docs/ARCHITECTURE.md) for component decisions, safety invariants, and implementation details.
 
 ## Service Flow
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant App as Application Harness
-    participant Search as Hybrid Retriever
-    participant Rules as Rule and Country Engines
-    participant LLM as Furiosa Chat Model
+1. Enter the airline, route, countries, and item description.
+2. Parse measurements and retrieve the most relevant official evidence.
+3. Calculate airline and country policy gates with deterministic code.
+4. Generate and validate the explanation, then display decisions and sources.
 
-    User->>App: Airline, route, countries, item text
-    App->>App: Validate and parse measurements
-    App->>Search: Retrieve dense and BM25 evidence
-    Search-->>App: RRF-ranked official rule IDs
-    App->>Rules: Calculate thresholds and policy gates
-    Rules-->>App: Fixed transport and journey statuses
-    App->>LLM: Compact verified context
-    LLM-->>App: Explanation, statuses, cited IDs
-    App->>App: Validate status and source envelope
-    App-->>User: Deterministic result and verified explanation
-```
+Current coverage includes Korean Air, Asiana Airlines, Jeju Air, shared IATA guidance, and selected China, Thailand, and Japan rules. Airline carriage, departure security, transit notices, destination customs, and quarantine remain separate checks; see [Regulatory Sources](docs/REGULATORY_SOURCES.md) for effective dates, dependencies, and coverage limitations.
 
 ## Run with Furiosa APIs
 
