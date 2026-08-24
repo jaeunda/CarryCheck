@@ -2,13 +2,10 @@
 
 CarryCheck is a verified airline-baggage RAG agent that separates evidence retrieval, deterministic policy decisions, and generative explanations. It was built with FuriosaAI during Soongsil University's **GPU/NPU-Based RAG and LLM Agent Practice** short course ([course details](docs/PRESENTATION_REPORT.md#course)).
 
-## Project Overview
-
 Enter an airline, route, countries, and a natural-language item description. CarryCheck returns carry-on, checked-baggage, and destination-entry results with required conditions and official sources in one screen.
+[Watch the demo video ↓](#demo-video)
 
 ## Performance
-
-Presentation snapshot: 10 curated questions; not a production benchmark.
 
 ![CarryCheck RAG performance: Hybrid Recall@3 1.00, 100% transport-status match with 10/10 guardrails, and 38.6% fewer tokens](docs/assets/performance-summary.svg)
 
@@ -16,7 +13,7 @@ Presentation snapshot: 10 curated questions; not a production benchmark.
 - **Verified decisions ·** **100%** transport-status match and **10/10** guardrails passed — generation preserved deterministic statuses and known source IDs.
 - **Context efficiency ·** **4,396 → 2,699** tokens (**−38.6%**) — selective evidence removed 1,697 tokens from one identical request.
 
-See [Evaluation](docs/EVALUATION.md) for complete measurements, experiment details, and limitations.
+See [Evaluation](docs/EVALUATION.md) for complete measurements, experiment details, and limitations. 10 curated questions; not a production benchmark.
 
 ## System at a Glance
 
@@ -38,6 +35,12 @@ See [Architecture](docs/ARCHITECTURE.md) for the detailed system diagram, compon
 4. Generate and validate the explanation, then display decisions and sources.
 
 Current coverage includes Korean Air, Asiana Airlines, Jeju Air, shared IATA guidance, and selected China, Thailand, and Japan rules. Airline carriage, departure security, transit notices, destination customs, and quarantine remain separate checks; see [Regulatory Sources](docs/REGULATORY_SOURCES.md) for effective dates, dependencies, and coverage limitations.
+
+
+## Demo Video
+
+https://github.com/user-attachments/assets/b405ebbd-aeff-4068-ac9a-e1d54b6e4720
+
 
 ## Run with Furiosa APIs
 
