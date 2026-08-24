@@ -18,50 +18,19 @@ Presentation snapshot: 10 curated questions; not a production benchmark.
 
 See [Evaluation](docs/EVALUATION.md) for complete measurements, experiment details, and limitations.
 
-## Architecture
+## System at a Glance
 
-```mermaid
-flowchart TB
-    subgraph RETRIEVE["1 · RETRIEVE EVIDENCE"]
-        direction TB
-        INPUT[User input] --> PARSE[Parse and validate]
-        PARSE --> DENSE[Dense retrieval]
-        PARSE --> BM25[BM25 retrieval]
-        DENSE --> RRF[RRF fusion]
-        BM25 --> RRF
-    end
-
-    subgraph DECIDE["2 · DECIDE"]
-        direction TB
-        RULES[Deterministic rule engine] --> COUNTRY[Country policy gates]
-    end
-
-    subgraph EXPLAIN["3 · EXPLAIN"]
-        direction TB
-        CONTEXT[Compact verified context] --> LLM[Furiosa Chat explanation]
-        LLM --> GUARD[Status and source guardrail]
-        GUARD --> RESULT[Decision, explanation, and sources]
-    end
-
-    RRF --> RULES
-    PARSE --> RULES
-    COUNTRY --> CONTEXT
-
-    classDef evidence fill:#e8f3f0,stroke:#087f6d,color:#173b35;
-    classDef decision fill:#fff4df,stroke:#d17a00,color:#513000;
-    classDef explain fill:#eef1f5,stroke:#657786,color:#20303c;
-    class INPUT,PARSE,DENSE,BM25,RRF evidence;
-    class RULES,COUNTRY decision;
-    class CONTEXT,LLM,GUARD,RESULT explain;
-```
+![CarryCheck system summary showing retrieval models, deterministic decisions, explanation models, guardrails, and measured effects](docs/assets/architecture-model-map.svg)
 
 1. **Retrieve:** Qwen3 embeddings and BM25 find semantic and exact regulatory evidence, then RRF combines their rankings.
 2. **Decide:** Deterministic airline and country engines own every numerical calculation and status.
 3. **Explain:** The LLM receives only compact verified context, and the Harness rejects status or source-ID mismatches.
 
-See [Architecture](docs/ARCHITECTURE.md) for component decisions, safety invariants, and implementation details.
+See [Architecture](docs/ARCHITECTURE.md) for the detailed system diagram, component decisions, safety invariants, and implementation details.
 
 ## Service Flow
+
+![CarryCheck regulatory flow showing the cumulative international, airline, departure, transit, and destination gates](docs/assets/regulatory-gates.svg)
 
 1. Enter the airline, route, countries, and item description.
 2. Parse measurements and retrieve the most relevant official evidence.

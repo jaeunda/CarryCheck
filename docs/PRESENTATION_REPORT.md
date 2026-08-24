@@ -18,13 +18,9 @@ The presentation used this representative request:
 
 > On an Asiana international flight from the Republic of Korea to Japan, can I carry two 10,000 mL liquid containers?
 
-## System at a Glance
-
-![CarryCheck architecture showing retrieval, deterministic decisions, explanation models, guardrails, and measured effects](assets/architecture-model-map.svg)
-
-The system was designed as an evidence-first Agent Loop. Retrieval narrows the applicable rules, deterministic code calculates the statuses, and a generative model explains only the verified result. This division improves retrieval coverage and context efficiency without transferring numerical or legal authority to the LLM.
-
 ## Models, Components, and Rationale
+
+The system was designed as an evidence-first Agent Loop. Retrieval narrows the applicable rules, deterministic code calculates the statuses, and a generative model explains only the verified result. See the [README system summary](../README.md#system-at-a-glance) for the visual overview and [Architecture](ARCHITECTURE.md#component-chain) for the detailed execution diagram.
 
 ### Retrieve — `furiosa-ai/Qwen3-Embedding-8B` + BM25 + RRF
 
@@ -49,17 +45,6 @@ Qwen3-32B-FP8 was the actual presentation model used for the Agent Loop, web dem
 The current public repository uses gpt-oss-120b as the configurable `.env.example` default through an OpenAI API-compatible Chat endpoint. It performs the same constrained explanation role after application-controlled retrieval. No historical presentation metric is attributed to this later model choice.
 
 ## How the Composition Creates the Result
-
-```mermaid
-flowchart TB
-    A[Semantic recall<br/>Qwen3-Embedding-8B] --> C[Relevant evidence]
-    B[Exact recall<br/>BM25] --> C
-    C --> D[Deterministic decision]
-    D --> E[Compact verified context]
-    E --> F[Qwen3-32B-FP8 explanation]
-    F --> G[Harness validation]
-    G --> H[Grounded answer]
-```
 
 1. **Hybrid retrieval** prevents vocabulary differences from hiding evidence while preserving exact regulatory tokens.
 2. **Deterministic ownership** makes numerical boundaries reproducible and prevents generated prose from changing legal states.
